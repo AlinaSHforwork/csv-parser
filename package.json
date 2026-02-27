@@ -1,0 +1,28 @@
+{
+  "name": "csv-parser",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlinaSHforwork/csv-parser.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/AlinaSHforwork/csv-parser/issues"
+  },
+  "homepage": "https://github.com/AlinaSHforwork/csv-parser#readme",
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "express": "^5.2.1",
+    "express-handlebars": "^8.0.6",
+    "pg": "^8.19.0"
+  }
+}

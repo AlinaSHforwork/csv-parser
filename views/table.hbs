@@ -1,0 +1,26 @@
+<div style="padding: 20px;">
+    <a href="/">&larr; Back to Dashboard</a>
+    <h1>Data for Table: <span style="color: #007bff;">{{tableName}}</span></h1>
+    <p>Showing the first 100 rows.</p>
+
+    <table border="1" style="width: 100%; border-collapse: collapse; background: white;">
+        <thead style="background: #f4f4f4;">
+            <tr>
+                {{#each columns}}
+                    <th style="padding: 10px; text-align: left;">{{this}}</th>
+                {{/each}}
+            </tr>
+        </thead>
+        <tbody>
+            {{#each rows}}
+                <tr>
+                    {{#each ../columns}}
+                        <td style="padding: 8px; border: 1px solid #ddd;">
+                            {{lookup .. this}}
+                        </td>
+                    {{/each}}
+                </tr>
+            {{/each}}
+        </tbody>
+    </table>
+</div>
