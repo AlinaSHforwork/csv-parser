@@ -23,6 +23,7 @@
     "csv-parser": "^3.2.0",
     "express": "^5.2.1",
     "express-handlebars": "^8.0.6",
+    "multer": "^2.1.0",
     "pg": "^8.19.0"
   }
 }

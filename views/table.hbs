@@ -1,26 +1,28 @@
 <div style="padding: 20px;">
     <a href="/">&larr; Back to Dashboard</a>
     <h1>Data for Table: <span style="color: #007bff;">{{tableName}}</span></h1>
-    <p>Showing the first 100 rows.</p>
+    <form method="GET" action="/table/{{tableName}}" style="margin-bottom: 20px;">
+        <input type="text" name="search" value="{{search}}" placeholder="Search any data...">
+        <button type="submit">Search</button>
+        <a href="/table/{{tableName}}"><button type="button">Clear</button></a>
+    </form>
 
-    <table border="1" style="width: 100%; border-collapse: collapse; background: white;">
-        <thead style="background: #f4f4f4;">
+    <table border="1" width="100%" style="border-collapse: collapse;">
+        <tr style="background: #eee;">
+            {{#each columns}} <th>{{this}}</th> {{/each}}
+        </tr>
+        {{#each rows}}
             <tr>
-                {{#each columns}}
-                    <th style="padding: 10px; text-align: left;">{{this}}</th>
-                {{/each}}
+                {{#each ../columns}} <td>{{lookup .. this}}</td> {{/each}}
             </tr>
-        </thead>
-        <tbody>
-            {{#each rows}}
-                <tr>
-                    {{#each ../columns}}
-                        <td style="padding: 8px; border: 1px solid #ddd;">
-                            {{lookup .. this}}
-                        </td>
-                    {{/each}}
-                </tr>
-            {{/each}}
-        </tbody>
+        {{/each}}
     </table>
+
+    <div style="margin-top: 20px;">
+        {{#if prevPage}}
+            <a href="/table/{{tableName}}?page={{prevPage}}&search={{search}}"><button>&larr; Previous Page</button></a>
+        {{/if}}
+        <span style="margin: 0 15px;">Page {{page}}</span>
+        <a href="/table/{{tableName}}?page={{nextPage}}&search={{search}}"><button>Next Page &rarr;</button></a>
+    </div>
 </div>

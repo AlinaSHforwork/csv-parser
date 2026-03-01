@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
 import csv from 'csv-parser';
 import dotenv from 'dotenv';
+import multer from 'multer';
 
 dotenv.config();
 
@@ -23,31 +24,44 @@ app.set('view engine', 'hbs');
 
 const csvFolder = path.join(dirname, 'csv')
 
-app.get('/', async (req, res) => {
-  try {
-    const allFiles = fs.readdirSync(csvFolder);
-    const csvFiles = allFiles.filter(file => path.extname(file).toLowerCase() === '.csv');
-
-    const dbResult = await pool.query(`
-      SELECT table_name FROM information_schema.tables 
-      WHERE table_schema = 'public'
-    `);
-
-    const tablesWithCounts = await Promise.all(dbResult.rows.map(async (row) => {
-      const countRes = await pool.query(`SELECT COUNT(*) FROM "${row.table_name}"`);
-      return { 
-        name: row.table_name, 
-        count: countRes.rows[0].count 
-      };
-    }));
-
-    res.render('index', { 
-      files: csvFiles, 
-      tables: tablesWithCounts 
-    });
-  } catch (err) {
-    res.status(500).send(err.message);
+const storage = multer.diskStorage({
+  destination: csvFolder,
+  filename: (req, file, cb) => cb(null, file.originalname)
+});
+const upload = multer({ 
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) cb(null, true);
+    else cb(new Error('Strictly .csv files only!'));
   }
+});
+
+const statusTracker = {};
+
+app.get('/', async (req, res) => {
+  const csvFiles = fs.readdirSync(csvFolder).filter(f => f.endsWith('.csv'));
+  const dbResult = await pool.query(`
+    SELECT table_name FROM information_schema.tables 
+    WHERE table_schema = 'public'
+    `);
+  
+  const tables = await Promise.all(dbResult.rows.map(async (row) => {
+    const countRes = await pool.query(`SELECT COUNT(*) FROM "${row.table_name}"`);
+    return { 
+      name: row.table_name, 
+      count: countRes.rows[0].count,
+      status: statusTracker[row.table_name] || 'Ready'
+    };
+  }));
+
+  res.render('index', { 
+    files: csvFiles,
+    tables 
+});
+});
+
+app.post('/upload', upload.single('csvFile'), (req, res) => {
+  res.redirect('/');
 });
 
 app.post('/parse', async (req, res) => {
@@ -60,41 +74,98 @@ app.post('/parse', async (req, res) => {
   const filePath = path.join(csvFolder, fileName);
   const tableName = path.parse(fileName).name.toLowerCase().replace(/[^a-z0-9]/g, '_');
   
+  res.redirect('/'); 
+  
+  statusTracker[tableName] = 'Parsing...';
   let isTableCreated = false;
+  let batch = [];
+  let columnsStr = '';
+  let headers = []; 
+
   const stream = fs.createReadStream(filePath).pipe(csv());
 
   try {
     for await (const row of stream) {
       if (!isTableCreated) {
-        const columns = Object.keys(row).map(column => `"${column}" TEXT`).join(', ');
+        headers = Object.keys(row); 
+        const columns = headers.map(col => `"${col}" TEXT`).join(', ');
+        columnsStr = headers.map(c => `"${c}"`).join(', ');
         await pool.query(`CREATE TABLE IF NOT EXISTS "${tableName}" (${columns})`);
         isTableCreated = true;
       }
 
-      const colNames = Object.keys(row).map(col => `"${col}"`).join(', ');
-      const colValues = Object.values(row);
-      const placeholders = colValues.map((_, i) => `$${i + 1}`).join(', ');
+      const normalizedRow = headers.map(header => row[header] === undefined ? null : row[header]);
+      batch.push(normalizedRow);
 
-      await pool.query(`INSERT INTO "${tableName}" (${colNames}) VALUES (${placeholders})`, colValues);
+      if (batch.length === 1000) {
+        stream.pause();
+        await insertBatch(tableName, columnsStr, batch);
+        batch = [];
+        stream.resume();
+      }
     }
-    res.redirect('/');
+
+    if (batch.length > 0) await insertBatch(tableName, columnsStr, batch);
+    
+    statusTracker[tableName] = 'Complete!';
   } catch (err) {
-    res.status(500).send("Parsing failed: " + err.message);
+    console.error(`Error parsing ${fileName}:`, err);
+    statusTracker[tableName] = 'Error during parsing';
   }
+});
+
+async function insertBatch(tableName, columnsStr, rowsArray) {
+  let valuesString = '';
+  let flatValues = [];
+  let paramIndex = 1;
+
+  rowsArray.forEach((row, rowIndex) => {
+    const rowParams = [];
+    row.forEach(val => {
+      rowParams.push(`$${paramIndex++}`);
+      flatValues.push(val);
+    });
+    valuesString += `(${rowParams.join(',')})` + (rowIndex === rowsArray.length - 1 ? '' : ',');
+  });
+
+  await pool.query(`INSERT INTO "${tableName}" (${columnsStr}) VALUES ${valuesString}`, flatValues);
+}
+
+
+
+app.post('/delete', async (req, res) => {
+  const { tableName } = req.body;
+  await pool.query(`DROP TABLE IF EXISTS "${tableName}"`);
+  delete statusTracker[tableName]; 
+  res.redirect('/');
 });
 
 app.get('/table/:name', async (req, res) => {
   const tableName = req.params.name;
+  const page = parseInt(req.query.page) || 1;
+  const limit = 100; 
+  const offset = (page - 1) * limit;
+  const search = req.query.search || '';
 
   try {
-    const result = await pool.query(`SELECT * FROM "${tableName}" LIMIT 100`);
+    let whereClause = '';
+    if (search) {
+      whereClause = `WHERE "${tableName}"::text ILIKE '%${search}%'`;
+    }
+
+    const query = `SELECT * FROM "${tableName}" ${whereClause} LIMIT $1 OFFSET $2`;
+    const result = await pool.query(query, [limit, offset]);
     
-    const columns = result.fields.map(field => field.name);
-    
+    const columns = result.fields.length > 0 ? result.fields.map(f => f.name) : [];
+
     res.render('table', { 
       tableName, 
       columns, 
-      rows: result.rows 
+      rows: result.rows, 
+      page, 
+      search,
+      nextPage: page + 1, 
+      prevPage: page > 1 ? page - 1 : null
     });
   } catch (err) {
     res.status(500).send("Could not open table: " + err.message);
