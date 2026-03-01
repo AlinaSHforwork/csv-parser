@@ -34,4 +34,4 @@ DB_URL=
 ```bash
 npm start
 ```
-### Server running on `[http://localhost:3000](http://localhost:3000)`
+### Server running on `http://localhost:3000` <a href="http://localhost:3000" target="_blank">Tap here</a>
