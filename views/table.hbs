@@ -1,11 +1,19 @@
 <div style="padding: 20px;">
     <a href="/">&larr; Back to Dashboard</a>
     <h1>Data for Table: <span style="color: #007bff;">{{tableName}}</span></h1>
-    <form method="GET" action="/table/{{tableName}}" style="margin-bottom: 20px;">
-        <input type="text" name="search" value="{{search}}" placeholder="Search any data...">
-        <button type="submit">Search</button>
-        <a href="/table/{{tableName}}"><button type="button">Clear</button></a>
-    </form>
+    
+    <div style="margin-bottom: 20px;">
+        <form method="GET" action="/table/{{tableName}}" style="display: inline-block;">
+            <input type="text" name="search" value="{{search}}" placeholder="Search any data...">
+            <button type="submit">Search</button>
+            {{#if search}}
+                <a href="/table/{{tableName}}"><button type="button">Clear</button></a>
+            {{/if}}
+        </form>
+        <p style="color: #666; margin-top: 10px;">
+            Total Rows: <strong>{{totalCount}}</strong> | Page <strong>{{page}}</strong> of <strong>{{totalPages}}</strong>
+        </p>
+    </div>
 
     <table border="1" width="100%" style="border-collapse: collapse;">
         <tr style="background: #eee;">
@@ -15,14 +23,24 @@
             <tr>
                 {{#each ../columns}} <td>{{lookup .. this}}</td> {{/each}}
             </tr>
+        {{else}}
+            <tr><td colspan="{{../columns.length}}" style="text-align: center; padding: 20px;">No results found</td></tr>
         {{/each}}
     </table>
 
-    <div style="margin-top: 20px;">
+    <div style="margin-top: 20px; display: flex; align-items: center; gap: 10px;">
         {{#if prevPage}}
-            <a href="/table/{{tableName}}?page={{prevPage}}&search={{search}}"><button>&larr; Previous Page</button></a>
+            <a href="/table/{{tableName}}?page={{prevPage}}{{#if search}}&search={{search}}{{/if}}"><button>&larr; Previous Page</button></a>
+        {{else}}
+            <button disabled style="opacity: 0.5; cursor: not-allowed;">&larr; Previous Page</button>
         {{/if}}
-        <span style="margin: 0 15px;">Page {{page}}</span>
-        <a href="/table/{{tableName}}?page={{nextPage}}&search={{search}}"><button>Next Page &rarr;</button></a>
+        
+        <span style="margin: 0 15px;">Page {{page}} of {{totalPages}}</span>
+        
+        {{#if nextPage}}
+            <a href="/table/{{tableName}}?page={{nextPage}}{{#if search}}&search={{search}}{{/if}}"><button>Next Page &rarr;</button></a>
+        {{else}}
+            <button disabled style="opacity: 0.5; cursor: not-allowed;">Next Page &rarr;</button>
+        {{/if}}
     </div>
 </div>

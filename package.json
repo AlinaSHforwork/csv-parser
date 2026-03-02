@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/AlinaSHforwork/csv-parser#readme",
   "dependencies": {
+    "csv-parse": "^6.1.0",
     "csv-parser": "^3.2.0",
     "express": "^5.2.1",
     "express-handlebars": "^8.0.6",
