@@ -24,4 +24,10 @@ DB_URL=
 npm start
 ```
 
+## Also added Sequelize version of parser, to run:
+
+```bash
+npm run startSequelize
+```
+
 ### Server running on `http://localhost:3000` <a href="http://localhost:3000" target="_blank">Tap here</a>

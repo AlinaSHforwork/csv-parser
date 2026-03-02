@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "startSequelize": "node indexSequelize.js"
   },
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
     "express": "^5.2.1",
     "express-handlebars": "^8.0.6",
     "multer": "^2.1.0",
-    "pg": "^8.19.0"
+    "pg": "^8.19.0",
+    "sequelize": "^6.37.7"
   }
 }
