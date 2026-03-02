@@ -1,6 +1,6 @@
 # CSV to PostgreSQL Stream Parser
 
-### Node.js web application that scans a local folder for CSV files and streams them into a PostgreSQL database.
+### Node.js web application that parses CSV files and streams them into a PostgreSQL database.
 
 ---
 
